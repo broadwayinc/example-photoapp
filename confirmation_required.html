@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/skapi-js@latest/dist/skapi.js"></script>
+
+<h1>Signup confirmation is required</h1>
+
+Please check your email to complete the process.<br><br>
+
+Did not get the email?
+<button onclick="skapi.resendSignupConfirmation()
+    .then(()=>alert('Signup confirmation e-mail has been sent'))
+    .catch(err=>alert(err.message))">Resend E-Mail</button>
+
+<br><br>
+
+<a href='login.html'>Back to Login</a>
+
+<script>
+    const skapi = new Skapi('service_id', 'owner_id');
+</script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/skapi-js@latest/dist/skapi.js"></script>
+<link rel="stylesheet" type="text/css" href="main.css">
+
+<form onsubmit="skapi.login(event, { onerror: handleError });" action="index.html">
+    <fieldset>
+        <legend>
+            <h1>Login</h1>
+        </legend>
+        <label>
+            E-Mail:<br>
+            <input type="email" name="email" required placeholder="E-Mail">
+        </label><br><br>
+        <label>
+            Password:<br>
+            <input type="password" name="password" required placeholder="Password">
+        </label><br><br>
+        <input type="submit" value="Login">
+    </fieldset>
+</form><br>
+<a href="create_account.html">Create Account</a> | <a href="forgot_password.html">Forgot Password?</a>
+
+<script>
+    const skapi = new Skapi('service_id', 'owner_id');
+
+    function handleError(err) {
+        switch (err?.code) {
+            case 'USER_IS_DISABLED':
+                if (window.confirm('Your account was deleted. Do you want to recover?')) {
+                    skapi.recoverAccount().then(r => {
+                        alert('Confirmation e-mail has been sent.');
+                    });
+                }
+                break;
+
+            case 'SIGNUP_CONFIRMATION_NEEDED':
+                window.location.replace('confirmation_required.html');
+                break;
+
+            default:
+                alert(err?.message || 'ERROR. Please try again.');
+        }
+    }
+</script>

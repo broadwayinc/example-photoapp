@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/skapi-js@latest/dist/skapi.js"></script>
+<link rel="stylesheet" type="text/css" href="main.css">
+
+<form onsubmit='skapi.updateProfile(event, { onerror: err => alert(err.message) })' action="index.html">
+    <fieldset>
+        <legend>
+            <h1>User Account</h1>
+        </legend>
+
+        <label>E-mail:<br>
+            <input type="email" name="email">
+        </label><br><br>
+
+        <label>Name:<br>
+            <input name="name">
+        </label><br><br>
+
+        <label>Address:<br>
+            <input name="address">
+        </label><br><br>
+
+        <label>Gender:<br>
+            <input name="gender">
+        </label><br><br>
+
+        <label>Birthdate:<br>
+            <input type="date" name="birthdate">
+        </label><br><br>
+
+        <label>
+            <input type="checkbox" name="email_public"> Make E-Mail public
+        </label><br><br>
+        <label>
+            <input type="checkbox" name="address_public"> Make Address public
+        </label><br><br>
+        <label>
+            <input type="checkbox" name="gender_public"> Make Gender public
+        </label><br><br>
+        <label>
+            <input type="checkbox" name="birthdate_public"> Make Birthdate public
+        </label><br><br>
+        <input type="submit" value='Update Profile'>
+    </fieldset>
+</form><br>
+<button type='button' onclick='disableAccount()'>Disable account</button><br><br>
+<a href="index.html">Back to main</a>
+
+<script>
+    const skapi = new Skapi('service_id', 'owner_id', { autoLogin: true });
+
+    skapi.getProfile().then(user => {
+        if (user === null) {
+            // user is not logged in!
+            // redirect to login page.
+            return window.location.replace("login.html");
+        }
+
+        let profileKeys = [
+            'email',
+            'email_public',
+            'name',
+            'address',
+            'gender',
+            'birthdate',
+            'address_public',
+            'gender_public',
+            'birthdate_public'
+        ];
+
+        for (let k of profileKeys) {
+            let input = document.querySelector(`input[name=${k}]`);
+            if (k.includes('public') && user[k]) {
+                // it's a checkbox
+                input.checked = true;
+                continue;
+            }
+
+            input.value = user[k] || '';
+        }
+    });
+
+    function disableAccount() {
+        if (confirm('Are you sure you want to disable your account?')) {
+            skapi.disableAccount().then(() => {
+                window.location.replace("bye.html");
+            });
+        }
+    }
+</script>

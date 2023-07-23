@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/skapi-js@latest/dist/skapi.js"></script>
+<link rel="stylesheet" type="text/css" href="main.css">
+
+<br>
+<a href="index.html">Go Back</a>
+<br><br>
+<div id="uploaded_photos">
+    <!-- this is where we list the user's uploaded photos -->
+</div>
+<div style='text-align: center;'>
+    <button id='showMoreCommentButton' hidden onclick="showMoreComment()">Show More Comments</button>
+</div>
+
+<br><br><br><br>
+
+<script src="likes_comments.js"></script>
+<script src="to_html.js"></script>
+<script>
+    const skapi = new Skapi('service_id', 'owner_id', { autoLogin: true });
+    let params = new URLSearchParams(window.location.search);
+    let record_id = params.get("rid");
+    let user = null;
+
+    skapi.getProfile().then(u => {
+        user = u;
+    });
+
+    // get post
+    skapi.getRecords({ record_id }).then(data => {
+        uploaded_photos.append(postToHtml(data.list[0]));
+    });
+
+    function showMoreComment() {
+        // get recent 4 comments (initial fetch)
+        skapi.getRecords({
+            table: {
+                name: 'comments',
+                access_group: "authorized"
+            },
+            index: {
+                name: 'comment.' + record_id,
+                value: 0,
+                condition: '>'
+            }
+        }, {
+            ascending: false,
+            limit: 4,
+            fetchMore: true
+        }).then(c => {
+            if (c.endOfList) {
+                showMoreCommentButton.setAttribute('hidden', '');
+            }
+            for (let comment of c.list) {
+                window[`${record_id}-commentSection`].append(commentPostToHtml(comment));
+            }
+        });
+    }
+</script>

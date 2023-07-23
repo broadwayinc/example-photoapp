@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/skapi-js@latest/dist/skapi.js"></script>
+<link rel="stylesheet" type="text/css" href="main.css">
+
+<h1 id="welcome">Welcome #name</h1>
+<p id="your_email">Your e-mail is: #email</p>
+
+<a href='user_account.html'>User Account</a> |
+<a href='change_password.html'>Change Password</a> |
+
+<button id='verifyEmail' onclick='emailVerification()' hidden>Verify Your E-Mail</button>
+
+<form style='display: inline-block;' onsubmit="skapi.logout(event)" action="login.html">
+    <input type="submit" value="Logout">
+</form>
+
+<br><br>
+
+<form onsubmit="postPhoto(event)">
+    <fieldset>
+        <legend>
+            <h2>Upload Photo</h2>
+        </legend>
+        <input id='uploaderNameInput' name="uploaderName" hidden>
+        <label><input type="file" name="photo" required></label><br><br>
+        <label>
+            Description:<br>
+            <textarea rows=4 style="width:100%;box-sizing:border-box;resize:none;" name="description"></textarea>
+        </label><br><br>
+        <label>
+            Tags:<br>
+            <input id='tagsInput' pattern="[a-zA-Z0-9 ,]+" style="width:100%;box-sizing:border-box;"
+                title="Only alphanumeric characters, spaces, and commas are allowed"
+                placeholder="separate with a comma(,)">
+        </label></label><br><br>
+        <label><input id='privateCheckbox' type="checkbox"> Private</label><br><br>
+        <input style='float: right;' type="submit">
+    </fieldset>
+</form><br>
+
+<button onclick="
+    listHeadH4.textContent = 'Latest';
+    fetchQuery = {
+        table: {
+            name: 'photos',
+            access_group: 'authorized'
+        }
+    };
+    initialFetch();
+"> Latest
+</button>
+
+<button onclick="
+    listHeadH4.textContent = 'Most Liked';
+    fetchQuery = {
+        table: {
+            name: 'photos',
+            access_group: 'authorized'
+        },
+        index: {
+            name: '$referenced_count',
+            value: 0,
+            condition: '>'
+        }
+    };
+    initialFetch();
+">Show Most Liked</button>
+
+<button onclick="
+    listHeadH4.textContent = 'Most Commented';
+    photoListDiv.innerHTML = '';
+    showMorePhotoButton.setAttribute('hidden', '');
+
+    // get comment indexes ordered by the number of number type values
+    // index value was the timestamp of the comment uploaded time
+    // We named the index 'comment.<record_id>' so that we can get the record_id from the index name
+
+    skapi.getIndexes(
+        {
+            table: 'comments',
+            index: 'comment.',
+            order: {
+                by: 'number_count',
+                value: 0,
+                condition: '>'
+            }
+        },
+        {
+            ascending: false
+        }
+    ).then(async data => {
+        let promises = [];
+        
+        for(let i of data.list) {
+            promises.push(skapi.getRecords({
+                record_id: i.index.split('.')[1],
+            }));
+        }
+        
+        let posts = await Promise.all(promises);
+
+        for(let post of posts) {
+            photoListDiv.append(postToHtml(post.list[0]));
+        }
+    });
+">Most Commented</button>
+
+<button onclick="
+    listHeadH4.textContent = 'My Likes';
+    photoListDiv.innerHTML = '';
+    showMorePhotoButton.setAttribute('hidden', '');
+
+    // get liked posts
+    // we can get liked record by getting the 'likes' table records by user_id
+    // then we can fetch the liked posts by the reference.record_id
+
+    skapi.getRecords(
+        {
+            table: 'likes',
+            reference: user.user_id,
+            // alternative way to get post by user_id
+            // index: {
+            //     name: '$user_id',
+            //     value: user.user_id
+            // }
+        },
+        {
+            ascending: false
+        }
+    ).then(async data => {
+        let promises = [];
+        
+        for(let i of data.list) {
+            promises.push(skapi.getRecords({
+                record_id: i.reference.record_id,
+            }));
+        }
+        
+        let posts = await Promise.all(promises);
+
+        for(let post of posts) {
+            photoListDiv.append(postToHtml(post.list[0]));
+        }
+    });
+">My Likes</button>
+
+<button onclick="
+    listHeadH4.textContent = 'Private'
+    fetchQuery = {
+        table: {
+            name: 'photos',
+            access_group: 'private'
+        },
+        reference: user.user_id,
+        // alternative way to get post by user_id
+        // index: {
+        //     name: '$user_id',
+        //     value: user.user_id
+        // }
+    };
+    initialFetch();
+">Private</button>
+
+<br><br>
+
+<input id='tagsSearchInput' pattern="[a-zA-Z0-9 ,]+" placeholder='Tags, ...'><button onclick="searchTags()">Search Tags</button>
+
+<h4 id="listHeadH4">Latest</h4>
+
+<div id="photoListDiv">
+    <!-- this is where we list the user's uploaded photos -->
+</div>
+
+<div style='text-align: center;'>
+    <button id='showMorePhotoButton' hidden onclick="showMorePhoto()">Show More Photos</button>
+</div>
+
+<br><br><br><br>
+
+<script src="likes_comments.js"></script>
+<script src="to_html.js"></script>
+<script>
+    const skapi = new Skapi('service_id', 'owner_id', { autoLogin: true });
+    let user = null;
+
+    skapi.getProfile().then(u => {
+        user = u;
+
+        if (user === null) {
+            // user is not logged in!
+            // redirect to login page.
+            return window.location.replace("login.html");
+        }
+
+        // welcome text
+        welcome.textContent = welcome.textContent.replace('#name', user.name || '');
+
+        // display user's email
+        your_email.textContent = your_email.textContent.replace('#email', user.email);
+
+        if (user?.email_verified) {
+            // add verified badge
+            your_email.textContent = your_email.textContent + ' [Verified]';
+        }
+        else {
+            // show 'Verify Your E-Mail' button
+            verifyEmail.removeAttribute('hidden');
+        }
+
+        // add uploader's name as a hidden input value to the post photo form
+        uploaderNameInput.value = user.name;
+    });
+
+    async function emailVerification() {
+        // Sends verification code to user's E-Mail
+        try {
+            await skapi.verifyEmail();
+            let code = prompt('Enter the verification code sent to your e-mail');
+            if (code !== null) {
+                // Verify code
+                await skapi.verifyEmail({ code });
+                window.alert('Your E-Mail is verified!');
+            }
+        }
+        catch (err) {
+            window.alert(err.message);
+            throw err;
+        }
+    }
+
+    async function postPhoto(event) {
+        let config = {
+            table: {
+                name: 'photos',
+                access_group: privateCheckbox.checked ? 'private' : 'authorized'
+            },
+            reference: {
+                allow_multiple_reference: false // restrict 1 'like' per user
+            }
+        };
+
+        if (tagsInput.value) {
+            // split tags by ','
+            // 'tag1, tag2' results to: ['tag1', 'tag2', ...]
+            config.tags = tagsInput.value.split(',').map(t => t.trim());
+        }
+
+        let post = await skapi.postRecord(event, config);
+
+        if (
+            !privateCheckbox.checked && listHeadH4.textContent === 'Latest' ||
+            privateCheckbox.checked && listHeadH4.textContent === 'Private'
+        ) {
+            let postHtml = postToHtml(post);
+            photoListDiv.prepend(postHtml);
+        }
+
+        event.target.reset();
+    }
+
+    // get uploaded photos (initial fetch)
+
+    let fetchQuery = {
+        table: {
+            name: 'photos',
+            access_group: 'authorized'
+        }
+    };
+
+    function initialFetch() {
+        // make sure photoListDiv is empty
+        photoListDiv.innerHTML = '';
+        showMorePhotoButton.setAttribute('hidden', '');
+
+        skapi.getRecords(
+            fetchQuery,
+            {
+                ascending: false,
+                fetchMore: false,
+                limit: 4
+            }
+        ).then(data => {
+            if (!data.endOfList) {
+                // show 'Show More Photos' button
+                showMorePhotoButton.removeAttribute('hidden');
+            }
+            for (let post of data.list) {
+                photoListDiv.append(postToHtml(post));
+            }
+        });
+    }
+
+    initialFetch();
+
+    function showMorePhoto() {
+        // get more uploaded photos (paginated fetch)
+        skapi.getRecords(
+            fetchQuery,
+            {
+                ascending: false,
+                fetchMore: true,
+                limit: 4
+            }
+        ).then(data => {
+            if (data.endOfList) {
+                showMorePhotoButton.setAttribute('hidden', '');
+            }
+            for (let post of data.list) {
+                photoListDiv.append(postToHtml(post));
+            }
+        });
+    }
+
+    async function searchTags() {
+        // search multiple OR tags
+
+        let promises = [];
+
+        tagsSearchInput.value.split(',').forEach(tag => {
+            promises.push(skapi.getRecords({
+                table: {
+                    name: 'photos',
+                    access_group: 'authorized'
+                },
+                tag: tag.trim()
+            }));
+        });
+
+        photoListDiv.innerHTML = '';
+        showMorePhotoButton.setAttribute('hidden', '');
+        let tagSearchResult = await Promise.all(promises);
+        
+        listHeadH4.textContent = 'Tags Search Result';
+
+        let taggedRecordId = [];
+
+        for (let tag of tagSearchResult) {
+            for (let post of tag.list) {
+                if (post.record_id in taggedRecordId) {
+                    continue;
+                }
+                photoListDiv.append(postToHtml(post));
+            }
+        }
+    }
+</script>

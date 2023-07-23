@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<script src="https://cdn.jsdelivr.net/npm/skapi-js@latest/dist/skapi.js"></script>
+<link rel="stylesheet" type="text/css" href="main.css">
+
+<form action="confirmation_required.html"
+    onsubmit="skapi.signup(event, { signup_confirmation: true, onerror: err => alert(err.message) })">
+    <fieldset>
+        <legend>
+            <h1>Create Account</h1>
+        </legend>
+
+        <label>Login E-mail:<br>
+            <input type="email" name="email" placeholder="user@email.com" required>
+        </label><br><br>
+
+        <label>Password:<br>
+            <input type="password" name="password" placeholder="At least 6 characters" minlength="6" required>
+        </label><br><br>
+
+        <label>Name:<br>
+            <input name="name" placeholder="(optional)">
+        </label><br><br>
+
+        <label>Address:<br>
+            <input name="address" placeholder="(optional)">
+        </label><br><br>
+
+        <label>Gender:<br>
+            <input name="gender" placeholder="(optional)">
+        </label><br><br>
+
+        <label>Birthdate:<br>
+            <input type="date" name="birthdate">
+        </label><br><br>
+
+        <input type="submit" value="Create Account">
+    </fieldset>
+</form><br>
+<a href="login.html">Cancel</a>
+
+<script>
+    const skapi = new Skapi('service_id', 'owner_id');
+</script>
