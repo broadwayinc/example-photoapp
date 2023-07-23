@@ -5,7 +5,7 @@ Refer Skapi [documentation](https://docs.skapi.com)
 
 ## Running the project
 
-1. Login, and create your service from [Skapi](https://www.skapi.com)
+1. Login, and create your service in [Skapi](https://www.skapi.com)
    
 2. Replace all 'service_id', 'owner_id' to your actual service id and the owner id value of your service. You can get your id's from your [Skapi dashboard](https://www.skapi.com/admin).
   
