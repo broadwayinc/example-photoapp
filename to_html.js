@@ -25,10 +25,8 @@ function postToHtml(p) {
             <div id='${p.record_id}-commentSection'></div>
         </div>`;
 
-    // get the image file as base64, set the img src attribute.
-    skapi.getFile(p.data.photo.url, {
-        dataType: 'base64'
-    }).then(base64 => {
+    // get the image endpoint, set the img src attribute.
+    p.bin.photo[0].getFile('endpoint').then(base64 => {
         window[`${p.record_id}-Img`].src = base64;
     });
 
