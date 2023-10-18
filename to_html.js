@@ -26,8 +26,8 @@ function postToHtml(p) {
         </div>`;
 
     // get the image endpoint, set the img src attribute.
-    p.bin.photo[0].getFile('endpoint').then(base64 => {
-        window[`${p.record_id}-Img`].src = base64;
+    p.bin.photo[0].getFile('endpoint').then(url => {
+        window[`${p.record_id}-Img`].src = url;
     });
 
     // get users like
