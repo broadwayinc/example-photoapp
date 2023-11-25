@@ -16,12 +16,11 @@
 
 <br><br>
 
-<form onsubmit="postPhoto(event)">
+<form onsubmit="postPhoto(event);">
     <fieldset>
         <legend>
             <h2>Upload Photo</h2>
         </legend>
-        <input id='uploaderNameInput' name="uploaderName" hidden>
         <label><input type="file" name="photo" required></label><br><br>
         <label>
             Description:<br>
@@ -97,9 +96,12 @@
             }));
         }
         
-        let posts = await Promise.all(promises);
+        let posts = await Promise.all(promises.map(p=>p.catch(err => console.log(err))));
 
         for(let post of posts) {
+            if(!post?.list) {
+                continue;
+            }
             photoListDiv.append(postToHtml(post.list[0]));
         }
     });
@@ -163,7 +165,8 @@
 
 <br><br>
 
-<input id='tagsSearchInput' pattern="[a-zA-Z0-9 ,]+" placeholder='Tags, ...'><button onclick="searchTags()">Search Tags</button>
+<input id='tagsSearchInput' pattern="[a-zA-Z0-9 ,]+" placeholder='Tags, ...'><button onclick="searchTags()">Search
+    Tags</button>
 
 <h4 id="listHeadH4">Latest</h4>
 
@@ -177,15 +180,16 @@
 
 <br><br><br><br>
 
+<script src="loader.js"></script>
 <script src="likes_comments.js"></script>
 <script src="to_html.js"></script>
 <script>
-    const skapi = new Skapi('service_id', 'owner_id', { autoLogin: true });
+    const skapi = new Skapi('ap22wdp8UPj6LFuieFEc', 'f8e16604-69e4-451c-9d90-4410f801c006', {autoLogin: true});
     let user = null;
 
     skapi.getProfile().then(u => {
         user = u;
-        
+
         if (user === null) {
             // user is not logged in!
             // redirect to login page.
@@ -206,9 +210,6 @@
             // show 'Verify Your E-Mail' button
             verifyEmail.removeAttribute('hidden');
         }
-
-        // add uploader's name as a hidden input value to the post photo form
-        uploaderNameInput.value = user.name;
     });
 
     async function emailVerification() {
@@ -218,7 +219,7 @@
             let code = prompt('Enter the verification code sent to your e-mail');
             if (code !== null) {
                 // Verify code
-                await skapi.verifyEmail({ code });
+                await skapi.verifyEmail({code});
                 window.alert('Your E-Mail is verified!');
             }
         }
@@ -229,6 +230,8 @@
     }
 
     async function postPhoto(event) {
+        let loader = displayLoader();
+
         let config = {
             table: {
                 name: 'photos',
@@ -236,6 +239,11 @@
             },
             reference: {
                 allow_multiple_reference: false // restrict 1 'like' per user
+            },
+            progress: p => {
+                if (p.status === 'upload') {
+                    loader.innerHTML = `${Math.floor(p.progress)}%`;
+                }
             }
         };
 
@@ -246,6 +254,9 @@
         }
 
         let post = await skapi.postRecord(event, config);
+
+        hideLoader();
+        event.target.reset();
 
         if (
             !privateCheckbox.checked && listHeadH4.textContent === 'Latest' ||
@@ -312,6 +323,10 @@
     }
 
     async function searchTags() {
+        if (!tagsSearchInput.value) {
+            return;
+        }
+
         // search multiple OR tags
 
         let promises = [];
@@ -329,7 +344,7 @@
         photoListDiv.innerHTML = '';
         showMorePhotoButton.setAttribute('hidden', '');
         let tagSearchResult = await Promise.all(promises);
-        
+
         listHeadH4.textContent = 'Tags Search Result';
 
         let taggedRecordId = [];

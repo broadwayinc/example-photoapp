@@ -1,4 +1,4 @@
-
+let userList = {};
 function postToHtml(p) {
     // generate photo html from fetched posted data, fetch additional comment, like data
 
@@ -9,8 +9,9 @@ function postToHtml(p) {
             </a>
             <br>
             <pre style='margin: 0;display: inline-block;vertical-align: middle;'>Liked: <span id='${p.record_id}-likeCount'>${p.reference.referenced_count}</span></pre>
+            <button id='${p.record_id}-delButton' style='float:right' onclick='skapi.deleteRecords({record_id: "${p.record_id}"}).then(()=>initialFetch())' ${user.user_id !== p.user_id ? "hidden" : ""}>DELETE</button>
             <button id='${p.record_id}-likeButton' style='float:right' onclick='like("${p.record_id}")'>...</button>
-            <p style='font-weight:bold'>${p.data.uploaderName}</p>
+            <p style='font-weight:bold' id='${p.record_id}-userName'>...</p>
             ${new Date(p.updated).toLocaleString()}
             <p>${p.data?.description || '&nbsp;'}</p>
             Tags: ${(p.tags || []).join(', ')}
@@ -28,6 +29,18 @@ function postToHtml(p) {
     // get the image endpoint, set the img src attribute.
     p.bin.photo[0].getFile('endpoint').then(url => {
         window[`${p.record_id}-Img`].src = url;
+    });
+
+    // get user name
+    if (!userList[p.user_id]) {
+        userList[p.user_id] = skapi.getUsers({
+            searchFor: 'user_id',
+            value: p.user_id
+        });
+    }
+
+    userList[p.user_id].then(u => {
+        window[`${p.record_id}-userName`].innerHTML = u.list[0].name;
     });
 
     // get users like
