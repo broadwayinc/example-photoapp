@@ -100,6 +100,7 @@
 
         for(let post of posts) {
             if(!post?.list) {
+                // can be error message
                 continue;
             }
             photoListDiv.append(postToHtml(post.list[0]));
